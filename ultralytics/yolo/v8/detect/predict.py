@@ -53,6 +53,7 @@ class DetectionPredictor(BasePredictor):
         log_string = ""
         datalist = []
         rowindex_list = []
+        sorted_datalist = []
         if len(im.shape) == 3:
             im = im[None]  # expand for batch dim
         self.seen += 1
@@ -74,8 +75,8 @@ class DetectionPredictor(BasePredictor):
         det = results[idx].boxes  # TODO: make boxes inherit from tensors
         if len(det) == 0:
             return log_string
-        for c in det.cls.unique():
-            n = (det.cls == c).sum()  # detections per class
+       # for c in det.cls.unique():
+          #  n = (det.cls == c).sum()  # detections per class
            # log_string += f"{n} {self.model.names[int(c)]}{'s' * (n > 1)}, "
            ## killrow = (f"{n} {self.model.names[int(c)]}{'s' * (n > 1)}, ")
 
@@ -83,15 +84,15 @@ class DetectionPredictor(BasePredictor):
         for d in reversed(det):
             cls, conf = d.cls.squeeze(), d.conf.squeeze()
             krow = d.xywh.tolist()
-          #  print(krow[0][1])    #bounding box y coordinate
             rowindex=0
             if (krow[0][1] <= 95): rowindex=0
-            elif(krow[0][1] > 95 and krow[0][1] <= 130): rowindex=1
-            elif(krow[0][1] > 130 and krow[0][1] <= 190): rowindex=2
-            elif(krow[0][1] > 190 and krow[0][1] <= 250): rowindex=3
+            elif(krow[0][1] > 95 and krow[0][1] <= 135): rowindex=1
+            elif(krow[0][1] > 135 and krow[0][1] <= 175): rowindex=2
+            elif(krow[0][1] > 175 and krow[0][1] <= 215): rowindex=3
             else:                                         rowindex=4
             rowindex_list.append(rowindex)
-            
+         #   print(krow[0][1],'\t', rowindex,'\t', self.model.names[int(cls)])    #bounding box y coordinate
+
             if self.args.save_txt:  # Write to file
                 line = (cls, *(d.xywhn.view(-1).tolist()), conf) \
                     if self.args.save_conf else (cls, *(d.xywhn.view(-1).tolist()))  # label format
@@ -104,27 +105,31 @@ class DetectionPredictor(BasePredictor):
                     self.model.names[c] if self.args.hide_conf else f'{self.model.names[c]} {conf:.2f}')
                 self.annotator.box_label(d.xyxy.squeeze(), label, color=colors(c, True))
                 
-                datalist.insert(rowindex,[self.model.names[c]])
+                datalist.append(self.model.names[c])
+               # datalist.insert(rowindex,[self.model.names[c]])
+            #    print(datalist)
                # print(self.model.names[c]) ########################################
             if self.args.save_crop:
                 save_one_box(d.xyxy,
                              imc,
                              file=self.save_dir / 'crops' / self.model.model.names[c] / f'{self.data_path.stem}.jpg',
                              BGR=True)
-        
-        sorted_krow = (sorted(rowindex_list))
-       # print(sorted_krow)
-        # datalist sorting based on rowindex
-        for i in range(len(datalist)):
-            # prev = sorted_krow[i]
-            if (sorted_krow[i]==sorted_krow[i-1]):
-               # print(datalist[i]+datalist[i-1])
-                datalist[i].extend(datalist[i-1])
-                del datalist[i-1][0]
 
-        datalist = [x for x in datalist if x != []]
-       # print(datalist)
-        self.JSONWriter(frame,datalist)
+        sorted_datalist = sorted(map(list, zip(rowindex_list,datalist)))
+        sorted_krow, _  = zip(*sorted_datalist)
+       # print(sorted_datalist)
+        # datalist sorting based on rowindex
+        for i in range(len(sorted_datalist)):
+            if (sorted_krow[i]==sorted_krow[i-1]):
+                del sorted_datalist[i-1][0]
+                sorted_datalist[i].extend(sorted_datalist[i-1])
+                del sorted_datalist[i-1][0]
+                # datalist[i].extend(datalist[i-1])
+            else:
+                del sorted_datalist[i-1][0]        
+
+        sorted_datalist = [x for x in sorted_datalist if x != []]
+        self.JSONWriter(frame,sorted_datalist)
         return log_string
 
 def predict(cfg=DEFAULT_CFG, use_python=False):
