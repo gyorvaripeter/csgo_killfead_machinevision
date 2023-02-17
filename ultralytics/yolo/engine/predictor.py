@@ -75,7 +75,7 @@ class BasePredictor:
         name = self.args.name or f"{self.args.mode}"
         self.save_dir = increment_path(Path(project) / name, exist_ok=self.args.exist_ok)
         if self.args.conf is None:
-            self.args.conf = 0.25  # default conf=0.25
+            self.args.conf = 0.16  # default conf=0.25
         self.done_warmup = False
         if self.args.show:
             self.args.show = check_imshow(warn=True)
@@ -190,7 +190,8 @@ class BasePredictor:
 
             # Print time (inference-only)
             if self.args.verbose:
-                LOGGER.info(f"{s}{'' if len(preds) else '(no detections), '}{self.dt[1].dt * 1E3:.1f}ms")
+                print(f"{'' if len(preds) else '(no detections), '}process time: {self.dt[1].dt * 1E3:.1f}ms", end='\r')
+               # LOGGER.info(f"{s}{'' if len(preds) else '(no detections), '}{self.dt[1].dt * 1E3:.1f}ms")
 
         # Release assets
         if isinstance(self.vid_writer[-1], cv2.VideoWriter):

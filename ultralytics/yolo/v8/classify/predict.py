@@ -11,7 +11,7 @@ from ultralytics.yolo.utils.plotting import Annotator
 class ClassificationPredictor(BasePredictor):
 
     def get_annotator(self, img):
-        return Annotator(img, example=str(self.model.names), pil=True)
+        return Annotator(img, example=str(self.model.names), pil=True, font=8, line_width=1)
 
     def preprocess(self, img):
         img = (img if isinstance(img, torch.Tensor) else torch.Tensor(img)).to(self.model.device)
